@@ -17,24 +17,19 @@ def get_db_conn():
         password=DB_PASSWORD, database=DB_NAME
     )
 
-@app.get("/movies")
-def get_movies():
-    sql = f"SELECT * FROM  movies LIMIT 50;"
-    try:
-        conn = get_db_conn()
-        cur = conn.cursor()
-        cur.execute(sql)
-        cols = [d[0] for d in cur.description]
-        data = [dict(zip(cols, row)) for row in cur.fetchall()]
-        return jsonify(data)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    finally:
-        try:
-            cur.close(); conn.close()
-        except Exception:
-            pass
-
-if __name__ == "__main__":
-    # Local run: python app/main.py
-    app.run(host="0.0.0.0", port=8000)
+@app.route('/movies/<int:id>/poster', methods=['GET'])
+def get_movie_poster(id):
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    cursor.execute("SELECT id, tmdb_id, title, poster FROM movies WHERE id = %s", (id,))
+    movie = cursor.fetchone()
+    cursor.close()
+    db.close()
+    if not movie:
+        return jsonify({"message": "Movie not found"}), 404
+    return jsonify({
+        "id": movie['id'],
+        "tmdb_id": movie['tmdb_id'],
+        "title": movie['title'],
+        "poster_url": movie['poster']  # pastikan kolom poster berisi full URL
+    });
